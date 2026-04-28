@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>课堂点名</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #eef4ff, #f8fbff);
+            color: #1f2937;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 24px;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+            margin-bottom: 20px;
+        }
+
+        h1, h2 {
+            margin-top: 0;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 180px;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            resize: vertical;
+            font-size: 16px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+
+        button {
+            border: none;
+            border-radius: 10px;
+            padding: 12px 18px;
+            font-size: 15px;
+            cursor: pointer;
+            background: #2563eb;
+            color: #ffffff;
+        }
+
+        button.secondary {
+            background: #64748b;
+        }
+
+        button.danger {
+            background: #dc2626;
+        }
+
+        .result {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2563eb;
+            text-align: center;
+            padding: 24px 12px;
+            min-height: 88px;
+        }
+
+        .tips {
+            color: #475569;
+            line-height: 1.7;
+        }
+
+        ul {
+            padding-left: 20px;
+            line-height: 1.8;
+        }
+
+        .empty {
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>课堂点名</h1>
+            <p class="tips">名单已固定，点击“开始点名”即可随机抽取。需要改名单时，直接修改页面代码里的默认名单。</p>
+            <textarea id="nameInput" readonly></textarea>
+            <div class="actions">
+                <button id="pickBtn">开始点名</button>
+                <button id="removeBtn" class="secondary">点过后移出名单</button>
+                <button id="resetBtn" class="danger">清空记录</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>本次点到</h2>
+            <div id="result" class="result">等待点名...</div>
+        </div>
+
+        <div class="card">
+            <h2>剩余名单</h2>
+            <ul id="remainingList"></ul>
+        </div>
+
+        <div class="card">
+            <h2>点名记录</h2>
+            <ul id="historyList">
+                <li class="empty">暂无记录</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const defaultNames = ["张三", "李四", "王五", "赵六", "小明", "小红"];
+        const nameInput = document.getElementById("nameInput");
+        const pickBtn = document.getElementById("pickBtn");
+        const removeBtn = document.getElementById("removeBtn");
+        const resetBtn = document.getElementById("resetBtn");
+        const result = document.getElementById("result");
+        const remainingList = document.getElementById("remainingList");
+        const historyList = document.getElementById("historyList");
+
+        let removeAfterPick = false;
+        let history = [];
+
+        function resetToDefaultNames() {
+            setNames(defaultNames);
+        }
+
+        function getNames() {
+            return nameInput.value
+                .split("\n")
+                .map(name => name.trim())
+                .filter(name => name !== "");
+        }
+
+        function setNames(names) {
+            nameInput.value = names.join("\n");
+        }
+
+        function renderRemaining() {
+            const names = getNames();
+            if (names.length === 0) {
+                remainingList.innerHTML = '<li class="empty">当前没有学生名单</li>';
+                return;
+            }
+
+            remainingList.innerHTML = names
+                .map(name => `<li>${name}</li>`)
+                .join("");
+        }
+
+        function renderHistory() {
+            if (history.length === 0) {
+                historyList.innerHTML = '<li class="empty">暂无记录</li>';
+                return;
+            }
+
+            historyList.innerHTML = history
+                .map((name, index) => `<li>第 ${index + 1} 次：${name}</li>`)
+                .join("");
+        }
+
+        function pickRandomName() {
+            const names = getNames();
+
+            if (names.length === 0) {
+                result.textContent = "请先输入学生名单";
+                return;
+            }
+
+            const randomIndex = Math.floor(Math.random() * names.length);
+            const selectedName = names[randomIndex];
+
+            result.textContent = selectedName;
+            history.push(selectedName);
+            renderHistory();
+
+            if (removeAfterPick) {
+                names.splice(randomIndex, 1);
+                setNames(names);
+                renderRemaining();
+            }
+        }
+
+        pickBtn.addEventListener("click", pickRandomName);
+
+        removeBtn.addEventListener("click", () => {
+            removeAfterPick = !removeAfterPick;
+            removeBtn.textContent = removeAfterPick ? "已开启：点过后移出名单" : "点过后移出名单";
+            removeBtn.style.background = removeAfterPick ? "#16a34a" : "#64748b";
+        });
+
+        resetBtn.addEventListener("click", () => {
+            history = [];
+            result.textContent = "等待点名...";
+            resetToDefaultNames();
+            renderHistory();
+            renderRemaining();
+        });
+
+        resetToDefaultNames();
+        renderRemaining();
+        renderHistory();
+    </script>
+</body>
+</html>
