@@ -14,21 +14,22 @@
             font-family: Arial, sans-serif;
             background: linear-gradient(135deg, #eef4ff, #f8fbff);
             color: #1f2937;
-            font-size: 18px;
+            font-size: 19px;
         }
 
         .container {
-            max-width: 980px;
-            margin: 40px auto;
-            padding: 28px;
+            width: calc(100vw - 48px);
+            max-width: none;
+            margin: 20px auto;
+            padding: 10px;
         }
 
         .card {
             background: #ffffff;
             border-radius: 16px;
-            padding: 30px;
+            padding: 32px;
             box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-            margin-bottom: 24px;
+            margin-bottom: 20px;
         }
 
         h1, h2 {
@@ -36,11 +37,11 @@
         }
 
         h1 {
-            font-size: 38px;
+            font-size: 44px;
         }
 
         h2 {
-            font-size: 30px;
+            font-size: 34px;
         }
 
         textarea {
@@ -55,23 +56,23 @@
 
         .actions {
             display: flex;
-            gap: 12px;
+            gap: 16px;
             flex-wrap: wrap;
-            margin-top: 16px;
+            margin-top: 20px;
         }
 
         button {
             border: none;
             border-radius: 10px;
-            padding: 14px 24px;
-            font-size: 18px;
+            padding: 16px 26px;
+            font-size: 20px;
             cursor: pointer;
             background: #2563eb;
             color: #ffffff;
         }
 
         #pickBtn {
-            min-width: 132px;
+            min-width: 148px;
             text-align: center;
         }
 
@@ -84,18 +85,18 @@
         }
 
         .result {
-            font-size: 46px;
+            font-size: 56px;
             font-weight: bold;
             color: #2563eb;
             text-align: center;
-            padding: 30px 14px;
-            min-height: 108px;
+            padding: 32px 16px;
+            min-height: 124px;
         }
 
         ul {
             padding-left: 20px;
             line-height: 1.8;
-            font-size: 20px;
+            font-size: 22px;
         }
 
         .empty {
@@ -106,13 +107,10 @@
 <body>
     <div class="container">
         <div class="card">
-            <h1>课堂点名</h1>
-            <div id="result" class="result">等待点名...</div>
-            <div class="actions">
-                <button id="pickBtn">开始点名</button>
-                <button id="removeBtn" class="secondary">点过后移出名单</button>
-                <button id="resetBtn" class="danger">清空记录</button>
-            </div>
+            <h2>点名记录</h2>
+            <ul id="historyList">
+                <li class="empty">暂无记录</li>
+            </ul>
         </div>
 
         <div class="card">
@@ -121,17 +119,17 @@
         </div>
 
         <div class="card">
-            <h2>点名记录</h2>
-            <ul id="historyList">
-                <li class="empty">暂无记录</li>
-            </ul>
+            <h1>课堂点名</h1>
+            <div id="result" class="result">等待点名...</div>
+            <div class="actions">
+                <button id="pickBtn">开始点名</button>
+                <button id="removeBtn" class="secondary">点过后移出名单</button>
+                <button id="resetBtn" class="danger">重置</button>
+            </div>
         </div>
     </div>
-    <textarea id="nameInput" readonly hidden></textarea>
-
     <script>
         const defaultNames = ["张三", "李四", "王五", "赵六", "小明", "小红"];
-        const nameInput = document.getElementById("nameInput");
         const pickBtn = document.getElementById("pickBtn");
         const removeBtn = document.getElementById("removeBtn");
         const resetBtn = document.getElementById("resetBtn");
@@ -139,33 +137,27 @@
         const remainingList = document.getElementById("remainingList");
         const historyList = document.getElementById("historyList");
 
-        let removeAfterPick = false;
+        let removeAfterPick = true;
         let history = [];
+        let remainingNames = [...defaultNames];
         let rollingTimer = null;
 
+        function updateRemoveBtnState() {
+            removeBtn.textContent = removeAfterPick ? "已开启：点过后移出名单" : "点过后移出名单";
+            removeBtn.style.background = removeAfterPick ? "#16a34a" : "#64748b";
+        }
+
         function resetToDefaultNames() {
-            setNames(defaultNames);
-        }
-
-        function getNames() {
-            return nameInput.value
-                .split("\n")
-                .map(name => name.trim())
-                .filter(name => name !== "");
-        }
-
-        function setNames(names) {
-            nameInput.value = names.join("\n");
+            remainingNames = [...defaultNames];
         }
 
         function renderRemaining() {
-            const names = getNames();
-            if (names.length === 0) {
+            if (remainingNames.length === 0) {
                 remainingList.innerHTML = '<li class="empty">当前没有学生名单</li>';
                 return;
             }
 
-            remainingList.innerHTML = names
+            remainingList.innerHTML = remainingNames
                 .map(name => `<li>${name}</li>`)
                 .join("");
         }
@@ -182,15 +174,13 @@
         }
 
         function pickRandomName() {
-            const names = getNames();
-
-            if (names.length === 0) {
+            if (remainingNames.length === 0) {
                 result.textContent = "当前没有可点名学生";
                 return;
             }
 
             const selectedName = result.textContent;
-            const selectedIndex = names.indexOf(selectedName);
+            const selectedIndex = remainingNames.indexOf(selectedName);
 
             if (selectedIndex === -1) {
                 result.textContent = "请重新开始点名";
@@ -201,30 +191,27 @@
             renderHistory();
 
             if (removeAfterPick) {
-                names.splice(selectedIndex, 1);
-                setNames(names);
+                remainingNames.splice(selectedIndex, 1);
                 renderRemaining();
             }
         }
 
         function startRolling() {
-            const names = getNames();
-            if (names.length === 0) {
+            if (remainingNames.length === 0) {
                 result.textContent = "当前没有可点名学生";
                 return;
             }
 
             pickBtn.textContent = "停止";
             rollingTimer = setInterval(() => {
-                const currentNames = getNames();
-                if (currentNames.length === 0) {
+                if (remainingNames.length === 0) {
                     stopRolling(false);
                     result.textContent = "当前没有可点名学生";
                     return;
                 }
 
-                const randomIndex = Math.floor(Math.random() * currentNames.length);
-                result.textContent = currentNames[randomIndex];
+                const randomIndex = Math.floor(Math.random() * remainingNames.length);
+                result.textContent = remainingNames[randomIndex];
             }, 80);
         }
 
@@ -253,8 +240,7 @@
 
         removeBtn.addEventListener("click", () => {
             removeAfterPick = !removeAfterPick;
-            removeBtn.textContent = removeAfterPick ? "已开启：点过后移出名单" : "点过后移出名单";
-            removeBtn.style.background = removeAfterPick ? "#16a34a" : "#64748b";
+            updateRemoveBtnState();
         });
 
         resetBtn.addEventListener("click", () => {
@@ -267,6 +253,7 @@
         });
 
         resetToDefaultNames();
+        updateRemoveBtnState();
         renderRemaining();
         renderHistory();
     </script>
