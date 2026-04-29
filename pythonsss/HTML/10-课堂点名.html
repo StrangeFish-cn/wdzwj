@@ -14,34 +14,43 @@
             font-family: Arial, sans-serif;
             background: linear-gradient(135deg, #eef4ff, #f8fbff);
             color: #1f2937;
+            font-size: 18px;
         }
 
         .container {
-            max-width: 900px;
+            max-width: 980px;
             margin: 40px auto;
-            padding: 24px;
+            padding: 28px;
         }
 
         .card {
             background: #ffffff;
             border-radius: 16px;
-            padding: 24px;
+            padding: 30px;
             box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
 
         h1, h2 {
             margin-top: 0;
         }
 
+        h1 {
+            font-size: 38px;
+        }
+
+        h2 {
+            font-size: 30px;
+        }
+
         textarea {
             width: 100%;
-            min-height: 180px;
-            padding: 12px;
+            min-height: 220px;
+            padding: 14px;
             border: 1px solid #cbd5e1;
             border-radius: 12px;
             resize: vertical;
-            font-size: 16px;
+            font-size: 20px;
         }
 
         .actions {
@@ -54,11 +63,16 @@
         button {
             border: none;
             border-radius: 10px;
-            padding: 12px 18px;
-            font-size: 15px;
+            padding: 14px 24px;
+            font-size: 18px;
             cursor: pointer;
             background: #2563eb;
             color: #ffffff;
+        }
+
+        #pickBtn {
+            min-width: 132px;
+            text-align: center;
         }
 
         button.secondary {
@@ -70,22 +84,18 @@
         }
 
         .result {
-            font-size: 32px;
+            font-size: 46px;
             font-weight: bold;
             color: #2563eb;
             text-align: center;
-            padding: 24px 12px;
-            min-height: 88px;
-        }
-
-        .tips {
-            color: #475569;
-            line-height: 1.7;
+            padding: 30px 14px;
+            min-height: 108px;
         }
 
         ul {
             padding-left: 20px;
             line-height: 1.8;
+            font-size: 20px;
         }
 
         .empty {
@@ -97,18 +107,12 @@
     <div class="container">
         <div class="card">
             <h1>课堂点名</h1>
-            <p class="tips">名单已固定，点击“开始点名”即可随机抽取。需要改名单时，直接修改页面代码里的默认名单。</p>
-            <textarea id="nameInput" readonly></textarea>
+            <div id="result" class="result">等待点名...</div>
             <div class="actions">
                 <button id="pickBtn">开始点名</button>
                 <button id="removeBtn" class="secondary">点过后移出名单</button>
                 <button id="resetBtn" class="danger">清空记录</button>
             </div>
-        </div>
-
-        <div class="card">
-            <h2>本次点到</h2>
-            <div id="result" class="result">等待点名...</div>
         </div>
 
         <div class="card">
@@ -123,6 +127,7 @@
             </ul>
         </div>
     </div>
+    <textarea id="nameInput" readonly hidden></textarea>
 
     <script>
         const defaultNames = ["张三", "李四", "王五", "赵六", "小明", "小红"];
@@ -136,6 +141,7 @@
 
         let removeAfterPick = false;
         let history = [];
+        let rollingTimer = null;
 
         function resetToDefaultNames() {
             setNames(defaultNames);
@@ -179,25 +185,71 @@
             const names = getNames();
 
             if (names.length === 0) {
-                result.textContent = "请先输入学生名单";
+                result.textContent = "当前没有可点名学生";
                 return;
             }
 
-            const randomIndex = Math.floor(Math.random() * names.length);
-            const selectedName = names[randomIndex];
+            const selectedName = result.textContent;
+            const selectedIndex = names.indexOf(selectedName);
 
-            result.textContent = selectedName;
+            if (selectedIndex === -1) {
+                result.textContent = "请重新开始点名";
+                return;
+            }
+
             history.push(selectedName);
             renderHistory();
 
             if (removeAfterPick) {
-                names.splice(randomIndex, 1);
+                names.splice(selectedIndex, 1);
                 setNames(names);
                 renderRemaining();
             }
         }
 
-        pickBtn.addEventListener("click", pickRandomName);
+        function startRolling() {
+            const names = getNames();
+            if (names.length === 0) {
+                result.textContent = "当前没有可点名学生";
+                return;
+            }
+
+            pickBtn.textContent = "停止";
+            rollingTimer = setInterval(() => {
+                const currentNames = getNames();
+                if (currentNames.length === 0) {
+                    stopRolling(false);
+                    result.textContent = "当前没有可点名学生";
+                    return;
+                }
+
+                const randomIndex = Math.floor(Math.random() * currentNames.length);
+                result.textContent = currentNames[randomIndex];
+            }, 80);
+        }
+
+        function stopRolling(shouldPick = true) {
+            if (rollingTimer === null) {
+                return;
+            }
+
+            clearInterval(rollingTimer);
+            rollingTimer = null;
+            pickBtn.textContent = "开始点名";
+
+            if (shouldPick) {
+                pickRandomName();
+            }
+        }
+
+        pickBtn.addEventListener("click", () => {
+            if (rollingTimer === null) {
+                startRolling();
+                return;
+            }
+
+            stopRolling(true);
+        });
 
         removeBtn.addEventListener("click", () => {
             removeAfterPick = !removeAfterPick;
@@ -207,6 +259,7 @@
 
         resetBtn.addEventListener("click", () => {
             history = [];
+            stopRolling(false);
             result.textContent = "等待点名...";
             resetToDefaultNames();
             renderHistory();
